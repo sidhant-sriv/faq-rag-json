@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "yantra"
+version = "0.1.0"
+description = ""
+authors = ["sidhant-sriv <sidhant.sriv@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+langchain = "^0.3.14"
+jq = "^1.8.0"
+supabase = "^2.11.0"
+pydantic = "^2.10.5"
+langchain-community = "^0.3.14"
+langchain-text-splitters = "^0.3.5"
+langchain-cohere = "^0.3.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
