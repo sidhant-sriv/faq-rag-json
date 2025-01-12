@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class FAQ(BaseModel):
     question: str
     tags: list[str]
@@ -7,6 +8,7 @@ class FAQ(BaseModel):
 
     def to_text(self):
         return f"Question: {self.question}\nTags: {', '.join(self.tags)}\nAnswer: {self.answer}"
+
 
 class FAQList(BaseModel):
     faqs: list[FAQ]
