@@ -1,0 +1,468 @@
+{
+    "faqs": [
+        {
+            "question": "Can core branches take part in hackathon ?",
+            "answer": "Yes, they can take part in hackathons."
+        },
+        {
+            "question": "How do I register for events in Yantra'25?",
+            "answer": "You can register for the events in the \"Events\" section on VTOP."
+        },
+        {
+            "question": "Is there any cost for participation?",
+            "answer": "No, all the events are free of cost in Yantra'25."
+        },
+        {
+            "question": "What kind of technical skills will I gain from attending Yantra'25 events?",
+            "answer": "Yantra'25 will help you develop problem-solving, teamwork, and technical skills like coding and prototyping. It will enhance creativity, time management, and presentation abilities while providing exposure to new tools, mentorship, and networking opportunities."
+        },
+        {
+            "question": "Will I get refreshments for events?",
+            "answer": "Refreshments will be provided for the overnight event from the respected chapter/club."
+        },
+        {
+            "question": "What devices are allowed in the events?",
+            "answer": "All the devices are allowed during the span of the event."
+        },
+        {
+            "question": "Do I need to have prior skills to attend events?",
+            "answer": "Yantra'25 is a beginner friendly tech event."
+        },
+        {
+            "question": "How many events are there in Yantra'25?",
+            "answer": "There are 67 events in Yantra'25."
+        },
+        {
+            "question": "What is Central Hackathon?",
+            "answer": "Central hack is the official hacakathon of the yantra organised by VIT."
+        },
+        {
+            "question": "What are the timings for the OD?",
+            "answer": "The OD will be provided for the event time."
+        },
+        {
+            "question": "Do we have on spot OD?",
+            "answer": "No, you don't have on spot OD in Yantra'25. You need to register on VTOP."
+        },
+        {
+            "question": "Are tech competitions team based or solo?",
+            "answer": "There are solo events as well as team based events."
+        },
+        {
+            "question": "If OD is not updated, whom to contact?",
+            "answer": "Point of Contact(POC) will be responsible for the OD of the event."
+        },
+        {
+            "question": "How do I prepare for attending a tech talk?",
+            "answer": "To prepare for a tech talk, research the topic and speaker, bring a notebook or device for notes, and review any pre-talk materials. Prepare questions and arrive early to engage with attendees and make the most of the session."
+        },
+        {
+            "question": "Who can attend a tech talk?",
+            "answer": "Everyone, who are interested, can attend Tech talk ."
+        },
+        {
+            "question": "What is the judging criteria in events?",
+            "answer": "Each tech event have different judging criteria and based on it, the judging of the event will be handled under the supervision of the faculty coordinator"
+        },
+        {
+            "question": "What are the types of events in Yantra'25?",
+            "answer": "The types of events in Yantra'25 are hackathons, workshops, guest lectures, competitions and tech talks."
+        },
+        {
+            "question": "Whats the duration of Yantra'25?",
+            "answer": "The duration is from 3rd February till 9th February, a span of one week."
+        },
+        {
+            "question": "Are external participants allowed to participate in Yantra'25?",
+            "answer": "No external participants are not allowed to participate in Yantra'25."
+        },
+        {
+            "question": "Are meals and accomodation provided in hackathons?",
+            "answer": "No meals and accomodation are provided in hackathons, only refreshments are provided for overnight events."
+        },
+        {
+            "question": "How many times do I need to scan my ID card for getting OD?",
+            "answer": "Every day during the event you have to scan the ID card for getting OD. The coordinators will guide you"
+        },
+        {
+            "question": "Will I get a participation certificate?",
+            "answer": "No, you will not be provided with a participation certificate."
+        },
+        {
+            "question": "How will the cash prizes deposited to the winner?",
+            "answer": "The cash prize will be directly sent to your bank account registered on the VTOP."
+        },
+        {
+            "question": "When can we expect the result of the event?",
+            "answer": "All the results will be declared after conclusion of Yantra'25 or the event."
+        },
+        {
+            "question": "Will I get physical or E-certificates?",
+            "answer": "No, you will not get either of them."
+        },
+        {
+            "question": "Am I allowed to bring food in events?",
+            "answer": "No, you are not allowed to bring food in the event."
+        },
+        {
+            "question": "Will I have to apply for nightslips for overnight event?",
+            "answer": "No, you dont have to apply for night slips."
+        },
+        {
+            "question": "Should I apply for nightslips for overnight events?",
+            "answer": "No, you should not apply for the night slip for overnight events."
+        },
+        {
+            "question": "What are overnight events?",
+            "answer": "An overnight event is an event that spans over the night ."
+        },
+        {
+            "question": "When will I get the problem statement for the hackathon?",
+            "answer": "It will be provided on the day of the event.."
+        },
+        {
+            "question": "What is hackathon?",
+            "answer": "A hackathon is a collaborative and timed event to create innovative solutions."
+        },
+        {
+            "question": "What is Designathon?",
+            "answer": "A Designathon is a collaborative event where designers solve creative challenges, focusing on user experience, aesthetics, and innovation within constraints."
+        },
+        {
+            "question": "What is Ideathon?",
+            "answer": "An Ideathon  is a brainstorming event where participants generate innovative ideas to solve specific challenges, focusing on creativity, feasibility, and impact."
+        },
+        {
+            "question": "When am I supposed to report at the venue?",
+            "answer": "You are supposed to reach the venue 15 min prior to the event."
+        },
+        {
+            "question": "What is additional learning?",
+            "answer": "Yantra'25 is beginner friendly tech event no need of additional learning."
+        },
+        {
+            "question": "Can one of my teammates participate from room?",
+            "answer": "No, they must be physically present during the event."
+        },
+        {
+            "question": "Who is organizing Yantra'25?",
+            "answer": "The student's welfare office is organising Yantra'25 along with clubs and chapters."
+        },
+        {
+            "question": "What is a tech talk?",
+            "answer": "A Tech Talk is a presentation or discussion where experts share insights, trends, and knowledge on specific technology-related topics or innovations."
+        },
+        {
+            "question": "Can I register for more than one event?",
+            "answer": "Yes, you can register for more than one event."
+        },
+        {
+            "question": "Can I enter late to an event? if yes then how late?",
+            "answer": "You need to enter the event 15 minutes prior the given time slot."
+        },
+        {
+            "question": "Will I get port to charge my laptop?",
+            "answer": "Yes, plug points will be provided for charging."
+        },
+        {
+            "question": "Do I need to bring my laptop?",
+            "answer": "Yes, you should bring your own laptop to the event."
+        },
+        {
+            "question": "Am I allowed to leave the venue in middle of the event?",
+            "answer": "If you are eliminated, you can leave the venue based on the event."
+        },
+        {
+            "question": "What is a POC?",
+            "answer": "POC stands for Point of Contact or the person you should contact if you have any queries about the event."
+        },
+        {
+            "question": "What do I do if my events are clashing?",
+            "answer": "You can attend any one event."
+        },
+        {
+            "question": "Whom do I contact if theres any issue during the events?",
+            "answer": "Contact the POC of the event or the volunteer present during the event."
+        },
+        {
+            "question": "While registering for team events, does only one person need to register or all ?",
+            "answer": "No, all the team members have to register for the event."
+        },
+        {
+            "question": "Whom to contact if I lose something during the event?",
+            "answer": "Contact the POC of the event or the volunteer present during the event."
+        },
+        {
+            "question": "How will I get updates for each of the events?",
+            "answer": "Join the Yantra official instagram account to get all the recent updates."
+        },
+        {
+            "question": "Can I use an AI software during the event?",
+            "answer": "Yes, you can take the assitance of AI software in your projects."
+        },
+        {
+            "question": "I dont have a laptop can i still participate in the hackathon?",
+            "answer": "Yes, you can participate in the event."
+        },
+        {
+            "question": "I dont have a group can i still participate in the Yantra'25 competions?",
+            "answer": "Yes, you can participate in Yantra'25 competitions."
+        },
+        {
+            "question": "Are freshers allowed to participate in Yantra'25?",
+            "answer": "Yes, freshers are welcome to take part in Yantra'25."
+        },
+        {
+            "question": "Can different year student form a team together?",
+            "answer": "Yes, students from different years can take part together."
+        },
+        {
+            "question": "Are equipment provided in events?",
+            "answer": "If it is a hardware-based event, then the needed materials will be provided."
+        },
+        {
+            "question": "Is outside food delivery allowed during night time in hackathon?",
+            "answer": "No, outside food delivery is not alllowed during the event."
+        },
+        {
+            "question": "When is the last day to register for the events?",
+            "answer": "The event registration deadline is January 25th."
+        },
+        {
+            "question": "When will the registration start for the events in Yantra'25?",
+            "answer": "Registration for Yantra will open on January 18th."
+        },
+        {
+            "question": "Are scholars and masters students allowed to participate in the event?",
+            "answer": "Yes, scholars and masters students are allowed to take part in Yantra'25."
+        },
+        {
+            "question": "Do I need to be a part of the chapter to attend their events?",
+            "answer": "To participate in Yantra'25, you do not have to be a member of a club or chapter."
+        },
+        {
+            "question": "Can I go to attend my lab in between the event?",
+            "answer": "You can ask the organiser for leaving the event in between."
+        },
+        {
+            "question": "Is there a dress code for attending the event?",
+            "answer": "No, there isn't any specific dress code for attending the event."
+        },
+        {
+            "question": "Will I get OD if I leave in between the event?",
+            "answer": "You cannot leave the venue in between the event unless and until you are informed to leave."
+        },
+        {
+            "question": "Will there be a girl volunteer for overnight event?",
+            "answer": "Yes, a female volunteer will be present during the overnight event."
+        },
+        {
+            "question": "If I have medical emergency will I get extra time to submit?",
+            "answer": "No, you will not be given extra time to submit your work."
+        },
+        {
+            "question": "Are clubs and chapters organising events in Yantra'25?",
+            "answer": "Yes, Clubs and Chapters are organizing events in Yantra'25 along with Office of Students' Welfare."
+        },
+        {
+            "question": "What is CC?",
+            "answer": "CC is the abbreviation for clubs and chapters."
+        },
+        {
+            "question": "Can boys and girls be in the same team?",
+            "answer": "Yes, the teams can be co-ed."
+        },
+        {
+            "question": "How will hostel attendance be taken for overnight events?",
+            "answer": "The hostel attendance will be taken at the event venue itself for boys."
+        },
+        {
+            "question": "Are there any premium events in Yantra'25?",
+            "answer": "No, there aren't any paid events in Yantra'25. All events are free of cost."
+        },
+        {
+            "question": "Can I take help from Youtube tutorials during the event?",
+            "answer": "Indeed, you may use Youtube videos to your advantage duing events."
+        },
+        {
+            "question": "Will we get OD as audience in events?",
+            "answer": "There will be no ODs for any audience."
+        },
+        {
+            "question": "Are audience allowed in events?",
+            "answer": "Events are not permitted to have audience."
+        },
+        {
+            "question": "Will OD get processed on the same day?",
+            "answer": "No, ODs will not be processed on the same day."
+        },
+        {
+            "question": "Will they give us a tutorial before starting the hackathon?",
+            "answer": "They will guide you properly for the hackathon."
+        },
+        {
+            "question": "When is Yantra'25?",
+            "answer": "Yantra'25 begins on February 3rd and ends on Feburary 9th."
+        },
+        {
+            "question": "What is Yantra'25?",
+            "answer": "Yantra'25 is a week of technical innovation."
+        },
+        {
+            "question": "What if I am unable to register for an event?",
+            "answer": "You need to register on VTOP for the event otherwise you cannot attend the event."
+        },
+        {
+            "question": "I accidentaly registered for an event, what do I do?",
+            "answer": "If you have to attend the event you can otherwise you won't get OD."
+        },
+        {
+            "question": "Can I cancel my registration for an event?",
+            "answer": "No, you cannot cancel registration for any event."
+        },
+        {
+            "question": "Can I register on spot?",
+            "answer": "You cannot register for any event on the spot."
+        },
+        {
+            "question": "Is there any pre-requisite to attend workshops?",
+            "answer": "No prerequisities exist for attending workshops."
+        },
+        {
+            "question": "What should I bring to a workshop?",
+            "answer": "Bring a notebook, laptop, charger, pre-workshop materials and work samples."
+        },
+        {
+            "question": "What is workshop?",
+            "answer": "A workshop is an interactive session where participants gain practical skills, knowledge, or experience through hands-on activities and expert guidance."
+        },
+        {
+            "question": "Are workshops free?",
+            "answer": "Yes every event is free in Yantra'25."
+        },
+        {
+            "question": "Will I get certificate for workshops?",
+            "answer": "No, you will not receive any certificate for participating in workshops."
+        },
+        {
+            "question": "Can we organize our own events in Yantra'25?",
+            "answer": "Only clubs and chapters can organize events in Yantra'25."
+        },
+        {
+            "question": "Do I need to be a nine pointer to attend events?",
+            "answer": "No, anyone can register for any event."
+        },
+        {
+            "question": "Whats the difference between workshops and seminars?",
+            "answer": "No, workshops are different from seminars and webinars. Workshops are interactive and focus on hands-on learning with activities or group work, making them ideal for developing practical skills"
+        },
+        {
+            "question": "Will there be volunteers to assist us during the events?",
+            "answer": "Yes, there will be volunteers present during the whole event."
+        },
+        {
+            "question": "Can I become a volunteer in Yantra?",
+            "answer": "No, you cannot become a volunteer in Yantra'25."
+        },
+        {
+            "question": "How do I become a volunteer in Yantra?",
+            "answer": "You need to be a part of any clubs and chapters or student council member to be a volunteer"
+        },
+        {
+            "question": "Will there be any online events?",
+            "answer": "There are no online events in Yantra'25."
+        },
+        {
+            "question": "Can i record the Tech talk and Guest lecture?",
+            "answer": "No recording is not allowed during tech talk or guest lecture."
+        },
+        {
+            "question": "For hardware hackathons will you provide hardware materials?",
+            "answer": "Yes, we will provide hardware materials."
+        },
+        {
+            "question": "During daytime,will we have breaks for lunch,dinner and snacks in between hackathon or tech competitions?",
+            "answer": "Yes, you'll be given breaks during meal times."
+        },
+        {
+            "question": "During daytime,will we have breaks for lunch,dinner and snacks in between workshops or tech talks?",
+            "answer": "Yes, you will be given breaks during meal times."
+        },
+        {
+            "question": "Is there any theme for Yantra'25?",
+            "answer": "The theme for Yantra'25 is AI and SDGs."
+        },
+        {
+            "question": "Will classes be held during Yantra'25?",
+            "answer": "Yes, classes will be held during Yantra'25"
+        },
+        {
+            "question": "What is the procedure for  girls living in hostel for overnight event?",
+            "answer": "You'll just have to give your attedance and details at the hostel security gate, no need to apply for nightslip."
+        },
+        {
+            "question": "By what time should girls leave their hostel block for overnight events?",
+            "answer": "You should leave your hostel block before 9:30 PM and reach the venue."
+        },
+        {
+            "question": "By what time should boys leave their hostel block for overnight events?",
+            "answer": "You should leave your hostel block before 9:30 PM and reach the venue."
+        },
+        {
+            "question": "What are the timing for the overnight hackathon?",
+            "answer": "The timings for overnight hackathons is generally 9:30 PM to 6:00 AM."
+        },
+        {
+            "question": "Can we go outside the campus during Yantra'25?",
+            "answer": "Yes, you can go outside the campus according to the regular norms."
+        },
+        {
+            "question": "Am I allowed to move inside campus after 9:30pm during Yantra'25?",
+            "answer": "No, you are not allowed to move inside campus after 9:30PM during Yantra'25."
+        },
+        {
+            "question": "What is the Instagram handle for Yantra'25?",
+            "answer": "You can check us out at https://www.instagram.com/yantra_sw/ ."
+        },
+        {
+            "question": "what is difference between tech talk and hackathons?",
+            "answer": "A Tech Talk is an educational event where experts share insights on specific technologies or trends, usually through presentations. A Hackathon, on the other hand, is a collaborative, hands-on event where participants work intensively to build projects or solve problems within a set timeframe."
+        },
+        {
+            "question": "Will there be a live-streaming option for any sessions or competitions?",
+            "answer": "No, there will not be any live-streaming options for any sessions or competitions."
+        },
+        {
+            "question": "Can I leave the venue during overnight event?",
+            "answer": "No, you cannot leave the venue till 6:00 AM."
+        },
+        {
+            "question": "Is there a dedicated helpdesk for participants during the event?",
+            "answer": "Yes, there will be a dedicated helpdesk during the event."
+        },
+        {
+            "question": "can participants get sample problem statements for practice?",
+            "answer": "No, sample problems won't be provided for practice."
+        },
+        {
+            "question": "Are there any live demonstrations of new technologies during Yantra'25?",
+            "answer": "Yes there will be live demonstrations of new technologies during Yantra'25."
+        },
+        {
+            "question": "Will there be coding challenges tailored for beginners?",
+            "answer": "No, there will not be any coding challenges tailored for beginners."
+        },
+        {
+            "question": "Are there opportunities for internships or placements during Yantra'25?",
+            "answer": "Yes, there will be ample opportunites depending on the event."
+        },
+        {
+            "question": "What if I forget to bring my ID card?",
+            "answer": "You are not allowed to enter the venue without your ID card. Please make sure to bring it."
+        },
+        {
+            "question": "If no question found.",
+            "answer": "Please contact us at yantra.sw@vit.ac.in ."
+        }
+    ]
+}
