@@ -11,6 +11,7 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
 from langchain import hub
+from langchain.prompts import PromptTemplate
 import asyncio
 import logging
 from pydantic import BaseModel, ValidationError, SecretStr
@@ -38,34 +39,53 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Initialize Flask app
 from flask_cors import CORS
+
 app = Flask(__name__)
 CORS(app)
 
 # Global variables for caching loaded data and embeddings
 data_cache = None
 
+
 # Pydantic models for request validation
 class FaqEntry(BaseModel):
     question: str
     answer: str
 
+
 class FaqsModel(BaseModel):
     faqs: List[FaqEntry]
 
-embeddings = CohereEmbeddings(cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None, model="embed-english-v3.0", client=None, async_client=None)
-vector_store = SupabaseVectorStore(client=supabase, table_name="documents", query_name="match_documents", embedding=embeddings)
+
+embeddings = CohereEmbeddings(
+    cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None,
+    model="embed-english-v3.0",
+    client=None,
+    async_client=None,
+)
+vector_store = SupabaseVectorStore(
+    client=supabase,
+    table_name="documents",
+    query_name="match_documents",
+    embedding=embeddings,
+)
+
 
 # Asynchronous data loader function with caching
 async def load_data():
     global data_cache
     if data_cache is None:
-        loader = JSONLoader(file_path="data.json", text_content=False, jq_schema=".faqs[]")
+        loader = JSONLoader(
+            file_path="data.json", text_content=False, jq_schema=".faqs[]"
+        )
         data_cache = await asyncio.to_thread(loader.load)
     return data_cache
+
 
 @app.errorhandler(Exception)
 def handle_exception(e):
     return jsonify({"error": str(e)}), 500
+
 
 @app.route("/initialize", methods=["POST"])
 async def initialize():
@@ -79,10 +99,11 @@ async def initialize():
     except Exception as e:
         return handle_exception(e)
 
+
 @app.route("/add_data", methods=["POST"])
 async def add_data():
     new_json = request.get_json()
-    
+
     try:
         faqs_model = FaqsModel(**new_json)  # Validate incoming JSON
         splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
@@ -98,20 +119,21 @@ async def add_data():
 
         await vector_store.aadd_documents(items)
         return jsonify({"status": "Data added successfully"})
-    
+
     except ValidationError as ve:
         return jsonify({"error": ve.errors()}), 400
 
     except Exception as e:
         return handle_exception(e)
 
+
 @app.route("/ask", methods=["POST"])
 async def ask():
     json_data = request.get_json()
-    
+
     if not json_data or "question" not in json_data:
         return jsonify({"error": "Question is required"}), 400
-    
+
     question = json_data["question"]
 
     try:
@@ -121,34 +143,52 @@ async def ask():
         texts = splitter.split_documents(data)
 
         bm25_retriever = BM25Retriever.from_documents(texts)
-        bm25_retriever.k = 2
-        
+        bm25_retriever.k = 3
+
         ensemble_retriever = EnsembleRetriever(
-            retrievers=[bm25_retriever, vector_store.as_retriever()], 
-            weights=[0.5, 0.5]
+            retrievers=[bm25_retriever, vector_store.as_retriever()], weights=[0.5, 0.5]
         )
 
-        llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0.0, max_retries=2)
-        PROMPT = hub.pull("rlm/rag-prompt")
+        llm = ChatGroq(model="llama-3.3-70b-specdec", temperature=0.0, max_retries=2)
+
+        template = """
+        You are an FAQ assistant for Yantra '25 event. 
+
+        Your job is to help with providing information about what ever is present in the given information.
+        You should also suggest providing other sources of information like social media handles and websites when they are asked. 
+        You are a helpful assistant that answers questions based on context in a clear manner.
+        If you don't know the answer, just say "I don't know".
+        Don't try to make up an answer.
+        {context}
+
+        Question: {question}
+        Answer:
+        """
+        prompt = PromptTemplate(
+            template=template,
+            input_variables=[
+                "context",
+                "question",
+            ],
+        )
 
         qa = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
             retriever=ensemble_retriever,
-            chain_type_kwargs={"prompt": PROMPT},
+            chain_type_kwargs={"prompt": prompt},
         )
-
         response = qa(
             {
                 "query": question,
-                "context": "You are an FAQ assistant for a hackathon event called Yantra. Only use relevant context and give relevant answers.",
             }
         )
-        
-        return jsonify(response)
+        new_response = {k: v for k, v in response.items() if k != "context"}
+        return jsonify(new_response)
 
     except Exception as e:
         return handle_exception(e)
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002,debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=True)
