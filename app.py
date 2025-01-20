@@ -190,7 +190,7 @@ def add_data():
         # Add documents to vector store (async)
         import asyncio
 
-        asyncio.run(vector_store.aadd_documents(items))
+        asyncio.run(vector_store.afrom_documents(items))
 
         # Clear Redis cache when new data is added
         redis_client.flushdb()
@@ -269,7 +269,6 @@ def ask():
 
         # Because RetrievalQA.from_chain_type can be synchronous or async internally,
         # wrap it in an asyncio.run if needed.
-
 
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
