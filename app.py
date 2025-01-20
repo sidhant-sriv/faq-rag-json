@@ -38,6 +38,9 @@ FUZZY_MATCH_THRESHOLD = float(
     os.environ.get("FUZZY_MATCH_THRESHOLD", 90.0)
 )  # Default 90%
 
+# 1. Discord Webhook
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")  # Add your webhook URL
+
 if SUPABASE_URL is None or SUPABASE_SERVICE_KEY is None:
     raise ValueError(
         "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in the environment variables"
@@ -58,16 +61,13 @@ CORS(app)
 # Global variables for caching loaded data and embeddings
 data_cache = None
 
-
 # Pydantic models for request validation
 class FaqEntry(BaseModel):
     question: str
     answer: str
 
-
 class FaqsModel(BaseModel):
     faqs: List[FaqEntry]
-
 
 embeddings = CohereEmbeddings(
     cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None,
@@ -141,6 +141,32 @@ def load_data():
         )
         data_cache = loader.load()
     return data_cache
+
+
+# 2. Define a function that sends questions to the Discord Webhook
+def send_to_discord_webhook(question: str) -> None:
+    """
+    Sends the unanswered question to a configured Discord webhook URL.
+    """
+    import requests
+
+    if not DISCORD_WEBHOOK_URL:
+        logging.warning("No DISCORD_WEBHOOK_URL is set. Skipping Discord notification.")
+        return
+
+    payload = {
+        "content": f"An unanswered question was asked:\n**{question}**"
+    }
+
+    try:
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        # Discord webhook returns status 204 on success
+        if response.status_code != 204:
+            logging.error(
+                f"Failed to send question to Discord. Status: {response.status_code}, Response: {response.text}"
+            )
+    except Exception as ex:
+        logging.error(f"Exception while sending to Discord: {ex}")
 
 
 @app.errorhandler(Exception)
@@ -223,21 +249,11 @@ def ask():
             logging.info(f"[Cache Hit] Fuzzy match ratio: {match_ratio}%")
             cached_response["cache_hit"] = True
             cached_response["fuzzy_match_ratio"] = match_ratio
+
+            # 3a. If the result is "I don't know" (from cache), notify Discord.
+            if cached_response.get("result") == "I don't know":
+                send_to_discord_webhook(question)
             return jsonify(cached_response)
-
-        # If no cache hit, proceed with normal flow
-        # data = load_data()
-        # splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
-        # texts = splitter.split_documents(data)
-
-        # bm25_retriever = BM25Retriever.from_documents(texts)
-        # bm25_retriever.k = 3
-
-        # # Combine the BM25 retriever and Supabase vector store
-        # ensemble_retriever = EnsembleRetriever(
-        #     retrievers=[bm25_retriever, vector_store.as_retriever()],
-        #     weights=[0.5, 0.5],
-        # )
 
         llm = ChatGroq(model="llama-3.3-70b-specdec", temperature=0.0, max_retries=2)
 
@@ -267,22 +283,23 @@ def ask():
             ],
         )
 
-        # Because RetrievalQA.from_chain_type can be synchronous or async internally,
-        # wrap it in an asyncio.run if needed.
-
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
             retriever=vector_store.as_retriever(),
             chain_type_kwargs={"prompt": prompt},
         )
-        response = qa_chain({"query": question})
+        response = qa_chain({"query": question})  # response is typically a dict
 
         # Prepare response for caching
         # We exclude the "context" key because it can be large/unnecessary
         cache_response = {k: v for k, v in response.items() if k != "context"}
         cache_response["original_question"] = question
         cache_response["cache_hit"] = False
+
+        # 3b. If the LLM result is "I don't know", send the question to the Discord webhook.
+        if cache_response.get("result") == "I don't know":
+            send_to_discord_webhook(question)
 
         # Store in Redis cache
         cache_key = f"qa:{get_cache_key(question)}"
