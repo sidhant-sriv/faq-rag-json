@@ -12,7 +12,6 @@ from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
 from langchain import hub
 from langchain.prompts import PromptTemplate
-import asyncio
 import logging
 from pydantic import BaseModel, ValidationError, SecretStr
 from typing import List
@@ -45,7 +44,7 @@ if SUPABASE_URL is None or SUPABASE_SERVICE_KEY is None:
     )
 
 # Initialize Redis client
-redis_client = redis.from_url(REDIS_URL)
+redis_client = redis.Redis.from_url(REDIS_URL)
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -89,56 +88,58 @@ def get_cache_key(question: str) -> str:
     return hashlib.md5(question.lower().strip().encode()).hexdigest()
 
 
-async def get_fuzzy_cache_match(question: str) -> tuple[str, float]:
+def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
     """
-    Find the best fuzzy match for a question in the cache.
-    Returns the cached response and the match ratio if found, otherwise (None, 0).
+    Find the best fuzzy match for a question in the Redis cache.
+    Returns (cached_response_dict, match_ratio) if found above threshold,
+    otherwise ({}, 0.0).
     """
     try:
-        # Get all cache keys
-        all_keys = redis_client.keys("qa:*")
-        if not all_keys:
-            return None, 0
+        # Safely iterate through Redis keys with SCAN to avoid large blocking
+        # queries that KEYS can cause in production environments.
+        all_keys = redis_client.scan_iter("qa:*")
 
-        # Extract original questions from cache
-        cached_questions = []
-        key_mapping = {}
+        best_match_question = None
+        best_match_data = {}
+        best_ratio = 0.0
 
         for key in all_keys:
-            cached_data = json.loads(redis_client.get(key))
+            raw_data = redis_client.get(key)
+            if not raw_data:
+                continue  # Skip if there's no data or the key was removed
+            try:
+                cached_data = json.loads(raw_data.decode("utf-8"))
+            except json.JSONDecodeError:
+                continue  # Skip if the data is invalid JSON
+
             original_question = cached_data.get("original_question", "")
-            cached_questions.append(original_question)
-            key_mapping[original_question] = key
+            if not original_question:
+                continue
 
-        # Find best fuzzy match
-        best_match = None
-        best_ratio = 0
-
-        for cached_question in cached_questions:
-            ratio = fuzz.ratio(question.lower(), cached_question.lower())
+            ratio = fuzz.ratio(question.lower(), original_question.lower())
             if ratio > best_ratio:
                 best_ratio = ratio
-                best_match = cached_question
+                best_match_question = original_question
+                best_match_data = cached_data
 
         if best_ratio >= FUZZY_MATCH_THRESHOLD:
-            cached_response = json.loads(redis_client.get(key_mapping[best_match]))
-            return cached_response, best_ratio
+            return best_match_data, best_ratio
 
-        return None, 0
+        return {}, 0.0
 
     except Exception as e:
         logging.error(f"Error in fuzzy cache matching: {str(e)}")
-        return None, 0
+        return {}, 0.0
 
 
-# Asynchronous data loader function with caching
-async def load_data():
+def load_data():
+    """Load the JSON data from local file once and cache it in memory."""
     global data_cache
     if data_cache is None:
         loader = JSONLoader(
             file_path="data.json", text_content=False, jq_schema=".faqs[]"
         )
-        data_cache = await asyncio.to_thread(loader.load)
+        data_cache = loader.load()
     return data_cache
 
 
@@ -148,49 +149,66 @@ def handle_exception(e):
 
 
 @app.route("/initialize", methods=["POST"])
-async def initialize():
+def initialize():
     logging.info("Initializing data...")
     try:
-        data = await load_data()
+        data = load_data()
         splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
         texts = splitter.split_documents(data)
-        await vector_store.aadd_documents(texts)
+
+        # Because vector_store.aadd_documents is async, we can run it in a blocking way:
+        import asyncio
+
+        asyncio.run(vector_store.aadd_documents(texts))
+
         return jsonify({"status": "Data initialized successfully"})
     except Exception as e:
         return handle_exception(e)
 
 
 @app.route("/add_data", methods=["POST"])
-async def add_data():
+def add_data():
+    """
+    Endpoint to add new FAQ data. Validates the structure and updates the
+    vector store. Clears the Redis cache to avoid stale data.
+    """
     new_json = request.get_json()
 
     try:
         faqs_model = FaqsModel(**new_json)  # Validate incoming JSON
         splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
-        items = splitter.split_documents(
-            [
-                Document(
-                    page_content=entry.answer,
-                    metadata={"question": entry.question},
-                )
-                for entry in faqs_model.faqs
-            ]
-        )
 
-        await vector_store.aadd_documents(items)
+        items = []
+        for entry in faqs_model.faqs:
+            doc = Document(
+                page_content=entry.answer,
+                metadata={"question": entry.question},
+            )
+            # Split each new FAQ into smaller chunks if needed
+            items.extend(splitter.split_documents([doc]))
+
+        # Add documents to vector store (async)
+        import asyncio
+
+        asyncio.run(vector_store.aadd_documents(items))
+
         # Clear Redis cache when new data is added
         redis_client.flushdb()
         return jsonify({"status": "Data added successfully"})
 
     except ValidationError as ve:
         return jsonify({"error": ve.errors()}), 400
-
     except Exception as e:
         return handle_exception(e)
 
 
 @app.route("/ask", methods=["POST"])
-async def ask():
+def ask():
+    """
+    Main Q&A endpoint. Checks Redis for a fuzzy cache match first.
+    If not found, uses an ensemble of BM25 and Supabase VectorStore,
+    then LLM to generate an answer. Caches the result in Redis.
+    """
     json_data = request.get_json()
 
     if not json_data or "question" not in json_data:
@@ -200,24 +218,26 @@ async def ask():
 
     try:
         # Check cache first using fuzzy matching
-        cached_response, match_ratio = await get_fuzzy_cache_match(question)
+        cached_response, match_ratio = get_fuzzy_cache_match(question)
         if cached_response:
-            logging.info(f"Cache hit with fuzzy match ratio: {match_ratio}%")
+            logging.info(f"[Cache Hit] Fuzzy match ratio: {match_ratio}%")
             cached_response["cache_hit"] = True
             cached_response["fuzzy_match_ratio"] = match_ratio
             return jsonify(cached_response)
 
-        # If no cache hit, proceed with the normal flow
-        data = await load_data()
-        splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
-        texts = splitter.split_documents(data)
+        # If no cache hit, proceed with normal flow
+        # data = load_data()
+        # splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
+        # texts = splitter.split_documents(data)
 
-        bm25_retriever = BM25Retriever.from_documents(texts)
-        bm25_retriever.k = 3
+        # bm25_retriever = BM25Retriever.from_documents(texts)
+        # bm25_retriever.k = 3
 
-        ensemble_retriever = EnsembleRetriever(
-            retrievers=[bm25_retriever, vector_store.as_retriever()], weights=[0.5, 0.5]
-        )
+        # # Combine the BM25 retriever and Supabase vector store
+        # ensemble_retriever = EnsembleRetriever(
+        #     retrievers=[bm25_retriever, vector_store.as_retriever()],
+        #     weights=[0.5, 0.5],
+        # )
 
         llm = ChatGroq(model="llama-3.3-70b-specdec", temperature=0.0, max_retries=2)
 
@@ -230,6 +250,7 @@ async def ask():
         3. When you do not have enough information from the context, respond with "I don't know" rather than creating content or speculating.
         4. Do not invent answers or details outside of what the context provides.
         5. Strive to give comprehensive, concise responses that fully address the user's question.
+        6. Do not mention anything about the context not knowing something.
 
         Context:
         {context}
@@ -246,19 +267,20 @@ async def ask():
             ],
         )
 
-        qa = RetrievalQA.from_chain_type(
+        # Because RetrievalQA.from_chain_type can be synchronous or async internally,
+        # wrap it in an asyncio.run if needed.
+
+
+        qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
-            retriever=ensemble_retriever,
+            retriever=vector_store.as_retriever(),
             chain_type_kwargs={"prompt": prompt},
         )
-        response = qa(
-            {
-                "query": question,
-            }
-        )
+        response = qa_chain({"query": question})
 
         # Prepare response for caching
+        # We exclude the "context" key because it can be large/unnecessary
         cache_response = {k: v for k, v in response.items() if k != "context"}
         cache_response["original_question"] = question
         cache_response["cache_hit"] = False
@@ -266,7 +288,9 @@ async def ask():
         # Store in Redis cache
         cache_key = f"qa:{get_cache_key(question)}"
         redis_client.setex(
-            cache_key, timedelta(seconds=CACHE_EXPIRATION), json.dumps(cache_response)
+            cache_key,
+            timedelta(seconds=CACHE_EXPIRATION),
+            json.dumps(cache_response),
         )
 
         return jsonify(cache_response)
