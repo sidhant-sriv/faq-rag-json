@@ -61,13 +61,16 @@ CORS(app)
 # Global variables for caching loaded data and embeddings
 data_cache = None
 
+
 # Pydantic models for request validation
 class FaqEntry(BaseModel):
     question: str
     answer: str
 
+
 class FaqsModel(BaseModel):
     faqs: List[FaqEntry]
+
 
 embeddings = CohereEmbeddings(
     cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None,
@@ -108,7 +111,7 @@ def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
             if not raw_data:
                 continue  # Skip if there's no data or the key was removed
             try:
-                cached_data = json.loads(raw_data.decode("utf-8"))
+                cached_data = json.loads((raw_data).decode("utf-8"))
             except json.JSONDecodeError:
                 continue  # Skip if the data is invalid JSON
 
@@ -154,9 +157,7 @@ def send_to_discord_webhook(question: str) -> None:
         logging.warning("No DISCORD_WEBHOOK_URL is set. Skipping Discord notification.")
         return
 
-    payload = {
-        "content": f"An unanswered question was asked:\n**{question}**"
-    }
+    payload = {"content": f"An unanswered question was asked:\n**{question}**"}
 
     try:
         response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
@@ -196,14 +197,41 @@ def initialize():
 def add_data():
     """
     Endpoint to add new FAQ data. Validates the structure and updates the
-    vector store. Clears the Redis cache to avoid stale data.
+    local JSON file, the vector store, and clears the Redis cache
+    to avoid stale data. Requires an API key in the headers.
     """
-    new_json = request.get_json()
-
     try:
-        faqs_model = FaqsModel(**new_json)  # Validate incoming JSON
-        splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
+        # Check for API key in headers
+        api_key = request.headers.get("x-api-key")
+        if not api_key or api_key != os.environ.get("API_KEY"):
+            return jsonify({"error": "Unauthorized"}), 401
 
+        # Get the new FAQs from the request
+        new_json = request.get_json()
+        if not new_json:
+            return jsonify({"error": "No JSON payload provided"}), 400
+
+        # Validate incoming JSON structure with Pydantic
+        faqs_model = FaqsModel(**new_json)  # Expects {"faqs": [{question, answer}, ...]}
+
+        if not os.path.exists("data.json"):
+            # If data.json doesn't exist, create a basic structure
+            existing_data = {"faqs": []}
+        else:
+            with open("data.json", "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+
+        existing_faqs = existing_data.get("faqs", [])
+
+        # Append new FAQs
+        for entry in faqs_model.faqs:
+            existing_faqs.append({"question": entry.question, "answer": entry.answer})
+
+        # Write the combined FAQs back to data.json
+        with open("data.json", "w", encoding="utf-8") as f:
+            json.dump({"faqs": existing_faqs}, f, indent=2, ensure_ascii=False)
+
+        splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
         items = []
         for entry in faqs_model.faqs:
             doc = Document(
@@ -213,14 +241,13 @@ def add_data():
             # Split each new FAQ into smaller chunks if needed
             items.extend(splitter.split_documents([doc]))
 
-        # Add documents to vector store (async)
         import asyncio
 
-        asyncio.run(vector_store.afrom_documents(items))
+        asyncio.run(vector_store.aadd_documents(items))
 
-        # Clear Redis cache when new data is added
         redis_client.flushdb()
-        return jsonify({"status": "Data added successfully"})
+
+        return jsonify({"status": "Data added successfully"}), 200
 
     except ValidationError as ve:
         return jsonify({"error": ve.errors()}), 400

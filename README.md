@@ -28,6 +28,10 @@ Adds new FAQ entries to the existing vector store.
 
 - **URL**: `/add_data`
 - **Method**: `POST`
+- **Headers**:
+    ```
+    x-api-key: your-api-key
+    ```
 - **Request Body**:
     ```json
     {
