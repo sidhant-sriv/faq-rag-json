@@ -212,7 +212,9 @@ def add_data():
             return jsonify({"error": "No JSON payload provided"}), 400
 
         # Validate incoming JSON structure with Pydantic
-        faqs_model = FaqsModel(**new_json)  # Expects {"faqs": [{question, answer}, ...]}
+        faqs_model = FaqsModel(
+            **new_json
+        )  # Expects {"faqs": [{question, answer}, ...]}
 
         if not os.path.exists("data.json"):
             # If data.json doesn't exist, create a basic structure
@@ -282,23 +284,23 @@ def ask():
                 send_to_discord_webhook(question)
             return jsonify(cached_response)
 
-        llm = ChatGroq(model="llama-3.3-70b-specdec", temperature=0.0, max_retries=2)
+        llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.0, max_retries=2)
 
         template = """
-        You are an FAQ assistant for the Yantra '25 event. Your primary goal is to provide clear, detailed, and accurate answers using ONLY the information provided in the given context. If relevant, you may also suggest additional resources like social media handles or official websites. 
-
-        Follow these guidelines when responding:
-        1. Base your answers strictly on the provided context. 
-        2. If a user asks for more information or external resources, provide links or references as appropriate (e.g., social media pages, official sites).
-        3. When you do not have enough information from the context, respond with "I don't know" rather than creating content or speculating.
-        4. Do not invent answers or details outside of what the context provides.
-        5. Strive to give comprehensive, concise responses that fully address the user's question.
-        6. Do not mention anything about the context not knowing something.
-
-        Context:
+            You are an FAQ assistant for the Yantra ’25 event. Your role is to provide clear, detailed, and accurate answers based only on the given information. Follow these guidelines when responding:
+            1.	Fact-Based Responses: Provide answers strictly based on the given information. Do not speculate or include any details not explicitly provided.
+            2.	Helpful Resources: When relevant, suggest official resources such as websites or social media pages to guide the user further.
+            3.	Acknowledging Unavailable Information: If the answer is not available, simply respond with: “I don’t know.”
+            4.	Focused and Complete Answers: Ensure responses are concise yet thorough, addressing the user’s query without unnecessary commentary.
+            5.	Neutral Tone: Do not reference or discuss the availability of information or the source of your knowledge.
+            
+            
         {context}
 
-        Question: {question}
+        
+        Question:
+
+        {question}
 
         Answer:
         """
