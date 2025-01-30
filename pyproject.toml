@@ -23,6 +23,7 @@ flask-cors = "^5.0.0"
 redis = "^5.2.1"
 rapidfuzz = "^3.11.0"
 nltk = "^3.9.1"
+flask-limiter = "^3.10.1"
 
 
 [build-system]

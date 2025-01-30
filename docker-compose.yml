@@ -8,12 +8,11 @@ services:
       - "5002:5002"
     environment:
       - FLASK_ENV=development
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://host.docker.internal:6380  # Updated port reference
     depends_on:
       - redis
 
   redis:
     image: "redis:alpine"
     ports:
-      - "6379:6379"
-
+      - "6380:6379"  # Exposing Redis on port 6380 externally

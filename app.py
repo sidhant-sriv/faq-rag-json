@@ -7,7 +7,6 @@ from langchain_community.vectorstores import SupabaseVectorStore
 from langchain_cohere import CohereEmbeddings
 from langchain.retrievers import EnsembleRetriever
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.retrievers import BM25Retriever
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
 from langchain import hub
@@ -21,8 +20,9 @@ from rapidfuzz import fuzz
 import json
 import hashlib
 from datetime import timedelta
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-# Load environment variables
 load_dotenv()
 
 # Set up logging
@@ -32,11 +32,13 @@ COHERE_API = os.environ.get("COHERE_API")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
-CACHE_EXPIRATION = int(os.environ.get("CACHE_EXPIRATION", 3600))  # Default 1 hour
+REDIS_URL = os.environ.get("REDIS_URL")
+CACHE_EXPIRATION = int(os.environ.get("CACHE_EXPIRATION", 36000))  
 FUZZY_MATCH_THRESHOLD = float(
     os.environ.get("FUZZY_MATCH_THRESHOLD", 90.0)
 )  # Default 90%
+RATE_LIMIT = os.environ.get("RATE_LIMIT", "100 per hour")  # New rate limit variable
+
 
 # 1. Discord Webhook
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")  # Add your webhook URL
@@ -57,7 +59,12 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    storage_uri=REDIS_URL,
+    default_limits=[RATE_LIMIT]
+)
 # Global variables for caching loaded data and embeddings
 data_cache = None
 
@@ -176,6 +183,7 @@ def handle_exception(e):
 
 
 @app.route("/initialize", methods=["POST"])
+@limiter.limit(RATE_LIMIT)
 def initialize():
     logging.info("Initializing data...")
     try:
@@ -191,6 +199,12 @@ def initialize():
         return jsonify({"status": "Data initialized successfully"})
     except Exception as e:
         return handle_exception(e)
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        "error": f"Rate limit exceeded: {e.description}"
+    }), 429
 
 
 @app.route("/add_data", methods=["POST"])
@@ -293,7 +307,7 @@ def ask():
             3.	Acknowledging Unavailable Information: If the answer is not available, simply respond with: “I don’t know.”
             4.	Focused and Complete Answers: Ensure responses are concise yet thorough, addressing the user’s query without unnecessary commentary.
             5.	Neutral Tone: Do not reference or discuss the availability of information or the source of your knowledge.
-            
+            6. Give the reply in points if you think it is big enough.
             
         {context}
 
