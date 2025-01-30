@@ -5,11 +5,9 @@ from langchain_community.document_loaders import JSONLoader
 from supabase.client import Client, create_client
 from langchain_community.vectorstores import SupabaseVectorStore
 from langchain_cohere import CohereEmbeddings
-from langchain.retrievers import EnsembleRetriever
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
-from langchain import hub
 from langchain.prompts import PromptTemplate
 import logging
 from pydantic import BaseModel, ValidationError, SecretStr
@@ -309,6 +307,10 @@ def ask():
             5.	Neutral Tone: Do not reference or discuss the availability of information or the source of your knowledge.
             6. Give the reply in points if you think it is big enough.
             
+
+            PS: The yantra website is https://www.yantra.swvit.in/ so keep that in mind regardless of context
+
+
         {context}
 
         
