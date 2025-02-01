@@ -172,7 +172,7 @@ def send_to_discord_webhook(question: str) -> None:
     payload = {"content": f"An unanswered question was asked:\n**{question}**"}
 
     try:
-        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload, verify=False)
         # Discord webhook returns status 204 on success
         if response.status_code != 204:
             logging.error(
