@@ -74,6 +74,8 @@ else:
     logging.info(f"DISCORD_WEBHOOK_URL is set to: {DISCORD_WEBHOOK_URL}")
 
 # Initialize Redis client
+if REDIS_URL is None:
+    raise ValueError("REDIS_URL must be set in the environment variables")
 redis_client = redis.Redis.from_url(REDIS_URL)
 
 # Initialize Supabase client
@@ -324,7 +326,7 @@ def ask():
         # 2. No cache match, query the LLM (using round-robin GROQ key)
         
         llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.3-70b-specdec",
             temperature=0.0,
             max_retries=2,
             api_key=SecretStr(GROQ_API_KEY)
