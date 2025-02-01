@@ -350,6 +350,8 @@ def ask():
         
         Make sure to follow all instructions. Do not ignore at any cost. 
 
+        Never ever comment on the context.
+
         {context}
         
         Answer:
