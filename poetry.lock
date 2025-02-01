@@ -853,6 +853,22 @@ httpx = {version = ">=0.26,<0.29", extras = ["http2"]}
 pydantic = ">=1.10,<3"
 
 [[package]]
+name = "gptcache"
+version = "0.1.44"
+description = "GPTCache, a powerful caching library that can be used to speed up and lower the cost of chat applications that rely on the LLM service. GPTCache works as a memcache for AIGC applications, similar to how Redis works for traditional applications."
+optional = false
+python-versions = ">=3.8.1"
+files = [
+    {file = "gptcache-0.1.44-py3-none-any.whl", hash = "sha256:11ddd63b173dc3822b8c2eb7588ea947c825845ed0737b043038a238286bfec4"},
+    {file = "gptcache-0.1.44.tar.gz", hash = "sha256:d3d5e6a75c57594dc58212c2d6c53a7999c23ede30e0be66d213d885c0ad0be9"},
+]
+
+[package.dependencies]
+cachetools = "*"
+numpy = "*"
+requests = "*"
+
+[[package]]
 name = "greenlet"
 version = "3.1.1"
 description = "Lightweight in-process concurrent programming"
@@ -3539,4 +3555,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.13"
-content-hash = "e7dad998f95e30a3a3ebc9dc84b47d3937a688c4023a5cb67bb34350000b5a57"
+content-hash = "d2b24c54eac807dde5e32e9c6cb84c8f1a6f605eb63eae2892332aeb3b78dca2"
