@@ -34,6 +34,7 @@ current_cohere_key_index = 0
 def get_cohere_api_key():
     global current_cohere_key_index
     key = COHERE_API_KEYS[current_cohere_key_index]
+    logging.info(f"Selected COHERE API key index: {current_cohere_key_index}")
     current_cohere_key_index = (current_cohere_key_index + 1) % len(COHERE_API_KEYS)
     return key
 
@@ -50,45 +51,32 @@ current_groq_key_index = 0
 def get_groq_api_key():
     global current_groq_key_index
     key = GROQ_API_KEYS[current_groq_key_index]
+    logging.info(f"Selected GROQ API key index: {current_groq_key_index}")
     current_groq_key_index = (current_groq_key_index + 1) % len(GROQ_API_KEYS)
     return key
 
 
-# --------------------------------------
-
 REDIS_URL = os.environ.get("REDIS_URL")
-print(REDIS_URL)
+logging.info(f"REDIS_URL: {REDIS_URL}")
 CACHE_EXPIRATION = int(os.environ.get("CACHE_EXPIRATION", 36000))
-FUZZY_MATCH_THRESHOLD = float(
-    os.environ.get("FUZZY_MATCH_THRESHOLD", 90.0)
-)  # Default 90%
-RATE_LIMIT = os.environ.get("RATE_LIMIT", "100 per hour")  # New rate limit variable
+FUZZY_MATCH_THRESHOLD = float(os.environ.get("FUZZY_MATCH_THRESHOLD", 90.0))
+RATE_LIMIT = os.environ.get("RATE_LIMIT", "100 per hour")
 
-# 1. Discord Webhook
-DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")  # Add your webhook URL
-
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 if SUPABASE_URL is None or SUPABASE_SERVICE_KEY is None:
-    raise ValueError(
-        "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in the environment variables"
-    )
+    raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in the environment variables")
 
-# Log the status of DISCORD_WEBHOOK_URL
 if not DISCORD_WEBHOOK_URL:
-    logging.warning(
-        "DISCORD_WEBHOOK_URL is not set. Discord notifications will be skipped."
-    )
+    logging.warning("DISCORD_WEBHOOK_URL is not set. Discord notifications will be skipped.")
 else:
     logging.info(f"DISCORD_WEBHOOK_URL is set to: {DISCORD_WEBHOOK_URL}")
 
-# Initialize Redis client
 if REDIS_URL is None:
     raise ValueError("REDIS_URL must be set in the environment variables")
 redis_client = redis.Redis.from_url(REDIS_URL)
 
-# Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-# Initialize Flask app
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -100,11 +88,9 @@ limiter = Limiter(
     default_limits=[RATE_LIMIT],
 )
 
-# Global variables for caching loaded data and embeddings
 data_cache = None
 
 
-# Pydantic models for request validation
 class FaqEntry(BaseModel):
     question: str
     answer: str
@@ -115,20 +101,15 @@ class FaqsModel(BaseModel):
 
 
 def get_cache_key(question: str) -> str:
-    """Generate a consistent cache key for a question."""
-    return hashlib.md5(question.lower().strip().encode()).hexdigest()
+    key = hashlib.md5(question.lower().strip().encode()).hexdigest()
+    logging.debug(f"Generated cache key {key} for question: {question}")
+    return key
 
 
 def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
-    """
-    Find the best fuzzy match for a question in the Redis cache.
-    Returns (cached_response_dict, match_ratio) if found above threshold,
-    otherwise ({}, 0.0).
-    """
+    logging.info(f"Searching for fuzzy cache match for: {question}")
     try:
-        # Safely iterate through Redis keys with SCAN
         all_keys = redis_client.scan_iter("qa:*")
-
         best_match_question = None
         best_match_data = {}
         best_ratio = 0.0
@@ -147,14 +128,17 @@ def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
                 continue
 
             ratio = fuzz.ratio(question.lower(), original_question.lower())
+            logging.debug(f"Comparing '{question}' with '{original_question}': ratio {ratio}")
             if ratio > best_ratio:
                 best_ratio = ratio
                 best_match_question = original_question
                 best_match_data = cached_data
 
         if best_ratio >= FUZZY_MATCH_THRESHOLD:
+            logging.info(f"Found fuzzy match with ratio {best_ratio}% for question: {best_match_question}")
             return best_match_data, best_ratio
 
+        logging.info("No sufficient fuzzy cache match found.")
         return {}, 0.0
 
     except Exception as e:
@@ -163,36 +147,28 @@ def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
 
 
 def load_data():
-    """Load the JSON data from local file once and cache it in memory."""
     global data_cache
     if data_cache is None:
-        loader = JSONLoader(
-            file_path="data.json", text_content=False, jq_schema=".faqs[]"
-        )
+        logging.info("Loading data from data.json")
+        loader = JSONLoader(file_path="data.json", text_content=False, jq_schema=".faqs[]")
         data_cache = loader.load()
+        logging.info(f"Loaded {len(data_cache)} FAQ entries from file.")
+    else:
+        logging.info("Data already loaded; using cached data.")
     return data_cache
 
 
-# 2. Define a function that sends questions to the Discord Webhook
 def send_to_discord_webhook(question: str) -> None:
-    """
-    Sends the unanswered question to a configured Discord webhook URL.
-    """
-
+    logging.info(f"Sending question to Discord webhook: {question}")
     if not DISCORD_WEBHOOK_URL:
         logging.warning("No DISCORD_WEBHOOK_URL is set. Skipping Discord notification.")
         return
 
     payload = {"content": f"An unanswered question was asked:\n**{question}**"}
-
     try:
         response = requests.post(DISCORD_WEBHOOK_URL, json=payload, verify=False)
-        # Discord webhook returns status 204 on success
         if response.status_code != 204:
-            logging.error(
-                f"Failed to send question to Discord. "
-                f"Status: {response.status_code}, Response: {response.text}"
-            )
+            logging.error(f"Failed to send question to Discord. Status: {response.status_code}, Response: {response.text}")
         else:
             logging.info("Question successfully posted to Discord.")
     except Exception as ex:
@@ -201,26 +177,25 @@ def send_to_discord_webhook(question: str) -> None:
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    logging.error(f"Unhandled exception: {str(e)}")
     return jsonify({"error": str(e)}), 500
 
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
+    logging.warning("Rate limit exceeded")
     return jsonify({"error": f"Rate limit exceeded: {e.description}"}), 429
 
 
 @app.route("/health", methods=["GET"])
 def health():
+    logging.info("Health check endpoint called")
     return jsonify({"status": "ok"}), 200
 
 
 @app.route("/add_data", methods=["POST"])
 def add_data():
-    """
-    Endpoint to add new FAQ data. Validates the structure and updates the
-    local JSON file, the vector store, and clears the Redis cache
-    to avoid stale data. Requires an API key in the headers.
-    """
+    logging.info("add_data endpoint called")
     COHERE_API = get_cohere_api_key()
     embeddings = CohereEmbeddings(
         cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None,
@@ -236,37 +211,35 @@ def add_data():
     )
 
     try:
-        # Check for API key in headers
         api_key = request.headers.get("x-api-key")
         if not api_key or api_key != os.environ.get("API_KEY"):
+            logging.warning("Unauthorized access attempt in add_data endpoint")
             return jsonify({"error": "Unauthorized"}), 401
 
-        # Get the new FAQs from the request
         new_json = request.get_json()
         if not new_json:
+            logging.warning("No JSON payload provided in add_data endpoint")
             return jsonify({"error": "No JSON payload provided"}), 400
 
-        # Validate incoming JSON structure with Pydantic
-        faqs_model = FaqsModel(
-            **new_json
-        )  # Expects {"faqs": [{question, answer}, ...]}
+        faqs_model = FaqsModel(**new_json)
+        logging.info(f"Received {len(faqs_model.faqs)} FAQ entries to add.")
 
         if not os.path.exists("data.json"):
-            # If data.json doesn't exist, create a basic structure
             existing_data = {"faqs": []}
+            logging.info("data.json does not exist. Creating new file.")
         else:
             with open("data.json", "r", encoding="utf-8") as f:
                 existing_data = json.load(f)
+            logging.info("Loaded existing data from data.json")
 
         existing_faqs = existing_data.get("faqs", [])
-
-        # Append new FAQs
         for entry in faqs_model.faqs:
             existing_faqs.append({"question": entry.question, "answer": entry.answer})
+            logging.debug(f"Appending FAQ: {entry.question}")
 
-        # Write the combined FAQs back to data.json
         with open("data.json", "w", encoding="utf-8") as f:
             json.dump({"faqs": existing_faqs}, f, indent=2, ensure_ascii=False)
+        logging.info("Updated data.json with new FAQ entries.")
 
         splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
         items = []
@@ -276,17 +249,19 @@ def add_data():
                 metadata={"question": entry.question},
             )
             items.extend(splitter.split_documents([doc]))
+        logging.info(f"Split documents into {len(items)} chunks.")
 
         import asyncio
-
         asyncio.run(vector_store.aadd_documents(items))
+        logging.info("Documents added to vector store.")
 
-        # Clear Redis cache to avoid stale data
         redis_client.flushdb()
+        logging.info("Cleared Redis cache.")
 
         return jsonify({"status": "Data added successfully"}), 200
 
     except ValidationError as ve:
+        logging.error(f"Validation error: {ve.errors()}")
         return jsonify({"error": ve.errors()}), 400
     except Exception as e:
         return handle_exception(e)
@@ -294,16 +269,15 @@ def add_data():
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    """
-    Main Q&A endpoint. Checks Redis for a fuzzy cache match first.
-    If not found, uses an ensemble of BM25 and Supabase VectorStore,
-    then LLM to generate an answer. Caches the result in Redis.
-    """
+    logging.info("ask endpoint called")
     json_data = request.get_json()
     if not json_data or "question" not in json_data:
+        logging.warning("Question not provided in ask endpoint")
         return jsonify({"error": "Question is required"}), 400
 
     question = json_data["question"]
+    logging.info(f"Received question: {question}")
+
     COHERE_API = get_cohere_api_key()
     embeddings = CohereEmbeddings(
         cohere_api_key=SecretStr(COHERE_API) if COHERE_API else None,
@@ -317,19 +291,16 @@ def ask():
         query_name="match_documents",
         embedding=embeddings,
     )
-    GROQ_API_KEY = get_groq_api_key()  # <<< Round-robin key
-    print(GROQ_API_KEY)
-    logging.log(msg=GROQ_API_KEY, level=1)
+    GROQ_API_KEY = get_groq_api_key()
+    logging.info(f"Using GROQ API Key: {GROQ_API_KEY}")
+
     try:
-        # 1. Check cache first using fuzzy matching
         cached_response, match_ratio = get_fuzzy_cache_match(question)
         if cached_response:
             logging.info(f"[Cache Hit] Fuzzy match ratio: {match_ratio}%")
             cached_response["cache_hit"] = True
             cached_response["fuzzy_match_ratio"] = match_ratio
             return jsonify(cached_response)
-
-        # 2. No cache match, query the LLM (using round-robin GROQ key)
 
         llm = ChatGroq(
             model="llama-3.3-70b-specdec",
@@ -361,10 +332,8 @@ def ask():
         
         Answer:
         """
-        prompt = PromptTemplate(
-            template=template,
-            input_variables=["context", "question"],
-        )
+        prompt = PromptTemplate(template=template, input_variables=["context", "question"])
+        logging.info("Prompt template prepared for LLM.")
 
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
@@ -373,26 +342,23 @@ def ask():
             chain_type_kwargs={"prompt": prompt},
         )
         response = qa_chain({"query": question})
-
-        # Log the raw LLM response for debugging
         logging.info(f"LLM Response: {response}")
 
-        # 3. Prepare response for caching
         cache_response = {k: v for k, v in response.items() if k != "context"}
         cache_response["original_question"] = question
         cache_response["cache_hit"] = False
 
-        # 4. If the LLM result is "I don’t know", send the question to Discord (partial match).
         if "I don’t know." in cache_response.get("result", ""):
+            logging.info("LLM responded with 'I don’t know.' Sending notification to Discord.")
             send_to_discord_webhook(question)
 
-        # 5. Store in Redis cache
         cache_key = f"qa:{get_cache_key(question)}"
         redis_client.setex(
             cache_key,
             timedelta(seconds=CACHE_EXPIRATION),
             json.dumps(cache_response),
         )
+        logging.info(f"Stored response in cache with key: {cache_key}")
 
         if cache_response["result"] == "I don't know.":
             send_to_discord_webhook(cache_response["original_question"])
@@ -404,4 +370,5 @@ def ask():
 
 
 if __name__ == "__main__":
+    logging.info("Starting Flask server on port 5002")
     app.run(host="0.0.0.0", port=5002, debug=True)
