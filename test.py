@@ -2,8 +2,10 @@ import requests
 import os
 from dotenv import load_dotenv
 import logging
+
 load_dotenv()
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+
 
 def send_to_discord_webhook(question: str) -> None:
     """
@@ -25,5 +27,6 @@ def send_to_discord_webhook(question: str) -> None:
             )
     except Exception as ex:
         logging.error(f"Exception while sending to Discord: {ex}")
+
 
 send_to_discord_webhook("Test for webhook")

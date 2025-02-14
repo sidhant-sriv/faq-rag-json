@@ -30,11 +30,13 @@ logging.basicConfig(level=logging.INFO)
 COHERE_API_KEYS = os.environ.get("COHERE_API_KEYS", "").split(",")
 current_cohere_key_index = 0
 
+
 def get_cohere_api_key():
     global current_cohere_key_index
     key = COHERE_API_KEYS[current_cohere_key_index]
     current_cohere_key_index = (current_cohere_key_index + 1) % len(COHERE_API_KEYS)
     return key
+
 
 COHERE_API = get_cohere_api_key()
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -44,16 +46,19 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 GROQ_API_KEYS = os.environ.get("GROQ_API_KEYS", "").split(",")
 current_groq_key_index = 0
 
+
 def get_groq_api_key():
     global current_groq_key_index
     key = GROQ_API_KEYS[current_groq_key_index]
     current_groq_key_index = (current_groq_key_index + 1) % len(GROQ_API_KEYS)
     return key
+
+
 # --------------------------------------
 
 REDIS_URL = os.environ.get("REDIS_URL")
 print(REDIS_URL)
-CACHE_EXPIRATION = int(os.environ.get("CACHE_EXPIRATION", 36000))  
+CACHE_EXPIRATION = int(os.environ.get("CACHE_EXPIRATION", 36000))
 FUZZY_MATCH_THRESHOLD = float(
     os.environ.get("FUZZY_MATCH_THRESHOLD", 90.0)
 )  # Default 90%
@@ -69,7 +74,9 @@ if SUPABASE_URL is None or SUPABASE_SERVICE_KEY is None:
 
 # Log the status of DISCORD_WEBHOOK_URL
 if not DISCORD_WEBHOOK_URL:
-    logging.warning("DISCORD_WEBHOOK_URL is not set. Discord notifications will be skipped.")
+    logging.warning(
+        "DISCORD_WEBHOOK_URL is not set. Discord notifications will be skipped."
+    )
 else:
     logging.info(f"DISCORD_WEBHOOK_URL is set to: {DISCORD_WEBHOOK_URL}")
 
@@ -90,16 +97,18 @@ limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     storage_uri=REDIS_URL,
-    default_limits=[RATE_LIMIT]
+    default_limits=[RATE_LIMIT],
 )
 
 # Global variables for caching loaded data and embeddings
 data_cache = None
 
+
 # Pydantic models for request validation
 class FaqEntry(BaseModel):
     question: str
     answer: str
+
 
 class FaqsModel(BaseModel):
     faqs: List[FaqEntry]
@@ -108,6 +117,7 @@ class FaqsModel(BaseModel):
 def get_cache_key(question: str) -> str:
     """Generate a consistent cache key for a question."""
     return hashlib.md5(question.lower().strip().encode()).hexdigest()
+
 
 def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
     """
@@ -151,6 +161,7 @@ def get_fuzzy_cache_match(question: str) -> tuple[dict, float]:
         logging.error(f"Error in fuzzy cache matching: {str(e)}")
         return {}, 0.0
 
+
 def load_data():
     """Load the JSON data from local file once and cache it in memory."""
     global data_cache
@@ -160,6 +171,7 @@ def load_data():
         )
         data_cache = loader.load()
     return data_cache
+
 
 # 2. Define a function that sends questions to the Discord Webhook
 def send_to_discord_webhook(question: str) -> None:
@@ -186,31 +198,21 @@ def send_to_discord_webhook(question: str) -> None:
     except Exception as ex:
         logging.error(f"Exception while sending to Discord: {ex}")
 
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     return jsonify({"error": str(e)}), 500
 
-@app.route("/initialize", methods=["POST"])
-@limiter.limit(RATE_LIMIT)
-def initialize():
-    logging.info("Initializing data...")
-    try:
-        data = load_data()
-        splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=500)
-        texts = splitter.split_documents(data)
-
-        import asyncio
-        asyncio.run(vector_store.aadd_documents(texts))
-
-        return jsonify({"status": "Data initialized successfully"})
-    except Exception as e:
-        return handle_exception(e)
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return jsonify({
-        "error": f"Rate limit exceeded: {e.description}"
-    }), 429
+    return jsonify({"error": f"Rate limit exceeded: {e.description}"}), 429
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+
 
 @app.route("/add_data", methods=["POST"])
 def add_data():
@@ -245,7 +247,9 @@ def add_data():
             return jsonify({"error": "No JSON payload provided"}), 400
 
         # Validate incoming JSON structure with Pydantic
-        faqs_model = FaqsModel(**new_json)  # Expects {"faqs": [{question, answer}, ...]}
+        faqs_model = FaqsModel(
+            **new_json
+        )  # Expects {"faqs": [{question, answer}, ...]}
 
         if not os.path.exists("data.json"):
             # If data.json doesn't exist, create a basic structure
@@ -274,6 +278,7 @@ def add_data():
             items.extend(splitter.split_documents([doc]))
 
         import asyncio
+
         asyncio.run(vector_store.aadd_documents(items))
 
         # Clear Redis cache to avoid stale data
@@ -285,6 +290,7 @@ def add_data():
         return jsonify({"error": ve.errors()}), 400
     except Exception as e:
         return handle_exception(e)
+
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -324,14 +330,13 @@ def ask():
             return jsonify(cached_response)
 
         # 2. No cache match, query the LLM (using round-robin GROQ key)
-        
+
         llm = ChatGroq(
             model="llama-3.3-70b-specdec",
             temperature=0.0,
             max_retries=2,
-            api_key=SecretStr(GROQ_API_KEY)
+            api_key=SecretStr(GROQ_API_KEY),
         )
-
 
         template = """
         Question: {question}
@@ -389,14 +394,14 @@ def ask():
             json.dumps(cache_response),
         )
 
-        # Also call Discord webhook if the final result is "I don't know." 
-        if cache_response['result'] == "I don't know.":
-            send_to_discord_webhook(cache_response['original_question'])
+        if cache_response["result"] == "I don't know.":
+            send_to_discord_webhook(cache_response["original_question"])
 
         return jsonify(cache_response)
 
     except Exception as e:
         return handle_exception(e)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)
